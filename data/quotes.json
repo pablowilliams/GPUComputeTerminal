@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-05-25T00:14:27.218Z",
+  "generatedAt": "2026-05-25T00:38:25.746Z",
   "source": "synthetic",
   "tickers": {
     "4090": {
       "ticker": "4090",
       "price": 0.42,
       "prevClose": 0.4315826469105251,
-      "ts": 1779668067218,
+      "ts": 1779669505746,
       "currency": "USD",
       "exchange": "SIM",
       "closes": [
@@ -106,7 +106,7 @@
       "ticker": "H100",
       "price": 2.49,
       "prevClose": 2.490007325339343,
-      "ts": 1779668067218,
+      "ts": 1779669505746,
       "currency": "USD",
       "exchange": "SIM",
       "closes": [
@@ -206,7 +206,7 @@
       "ticker": "B200",
       "price": 5.85,
       "prevClose": 5.973127884558803,
-      "ts": 1779668067218,
+      "ts": 1779669505746,
       "currency": "USD",
       "exchange": "SIM",
       "closes": [
@@ -306,7 +306,7 @@
       "ticker": "H200",
       "price": 3.45,
       "prevClose": 3.3294115398549864,
-      "ts": 1779668067218,
+      "ts": 1779669505746,
       "currency": "USD",
       "exchange": "SIM",
       "closes": [
@@ -406,7 +406,7 @@
       "ticker": "A100",
       "price": 1.15,
       "prevClose": 1.1528989903322593,
-      "ts": 1779668067218,
+      "ts": 1779669505746,
       "currency": "USD",
       "exchange": "SIM",
       "closes": [
@@ -506,7 +506,7 @@
       "ticker": "L40S",
       "price": 0.95,
       "prevClose": 0.9569837305272837,
-      "ts": 1779668067218,
+      "ts": 1779669505746,
       "currency": "USD",
       "exchange": "SIM",
       "closes": [
@@ -606,7 +606,7 @@
       "ticker": "MI300X",
       "price": 2.1,
       "prevClose": 2.135000537510952,
-      "ts": 1779668067218,
+      "ts": 1779669505746,
       "currency": "USD",
       "exchange": "SIM",
       "closes": [
@@ -706,7 +706,7 @@
       "ticker": "MI325X",
       "price": 3.2,
       "prevClose": 3.214181971953563,
-      "ts": 1779668067218,
+      "ts": 1779669505746,
       "currency": "USD",
       "exchange": "SIM",
       "closes": [
@@ -806,7 +806,7 @@
       "ticker": "TPUv5p",
       "price": 4.2,
       "prevClose": 4.179403032765234,
-      "ts": 1779668067218,
+      "ts": 1779669505746,
       "currency": "USD",
       "exchange": "SIM",
       "closes": [
@@ -906,7 +906,7 @@
       "ticker": "TRN2",
       "price": 1.85,
       "prevClose": 1.7812915022962177,
-      "ts": 1779668067218,
+      "ts": 1779669505746,
       "currency": "USD",
       "exchange": "SIM",
       "closes": [
