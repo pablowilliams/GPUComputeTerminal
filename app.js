@@ -741,6 +741,7 @@ function renderTickerSelect() {
     renderDetail();
     renderStocksTable();
     renderExtraPanel();
+    renderExtra2Panel();
     announce(`Selected ${state.selectedTicker}. SKU detail loaded.`);
   });
 }
@@ -1379,6 +1380,7 @@ function startLiveTicks() {
     renderTickerTape();
     renderStocksTable();
     renderExtraPanel();
+    renderExtra2Panel();
   };
 
   // Cadence: faster while market open, slower when closed, slowest when offline
@@ -1524,6 +1526,7 @@ function selectTickerFromRow(ticker) {
   renderDetail();
   renderStocksTable();
   renderExtraPanel();
+  renderExtra2Panel();
   // Don't steal focus — just announce
   announce(`Selected ${ticker}. Detail panel updated.`);
   // Scroll detail into view for convenience but keep focus
@@ -1964,6 +1967,43 @@ function renderExtraPanel() {
   if (body) body.innerHTML = capex.map(c => `<tr><td>${c.name}</td><td>${c.value}B</td></tr>`).join("");
 }
 
+
+function renderExtra2Panel() {
+  const container = document.getElementById("extra2-content");
+  if (!container || !state.stocks) return;
+  const w = 720, h = 300, padL = 60, padR = 80, padT = 16, padB = 28;
+  const inW = w - padL - padR, inH = h - padT - padB;
+  const months = 36;
+  const colors = ["#00d9ff", "#5ce8ff", "#ff9933", "#ff66cc", "#5cffc2", "#ffcc33"];
+  let pathsHtml = "", legend = "";
+  const yMax = 4.0;  // PFLOPS / $
+  const xScale = (m) => padL + (m / months) * inW;
+  const yScale = (v) => padT + (1 - v / yMax) * inH;
+  const allData = [];
+  state.stocks.slice(0, 6).forEach((s, idx) => {
+    const baseEff = Math.min(yMax, 0.5 / s.price * 8);
+    const series = [];
+    for (let m = 0; m <= months; m++) {
+      const moore = Math.pow(1.4, m / 24);
+      const noise = Math.sin(m * 0.3 + idx) * 0.1;
+      series.push(Math.min(yMax, baseEff * moore * (1 + noise)));
+    }
+    const path = series.map((v, i) => (i === 0 ? "M" : "L") + xScale(i).toFixed(1) + "," + yScale(v).toFixed(1)).join(" ");
+    pathsHtml += `<path d="${path}" fill="none" stroke="${colors[idx]}" stroke-width="1.8"/>`;
+    legend += `<text x="${w - padR + 8}" y="${padT + 12 + idx * 16}" fill="${colors[idx]}" font-size="10" font-family="JetBrains Mono, monospace">${s.ticker}</text>`;
+    allData.push({ sku: s.ticker, series });
+  });
+  const grid = [0, 1, 2, 3, 4].map(v => `<line x1="${padL}" x2="${w - padR}" y1="${yScale(v)}" y2="${yScale(v)}" stroke="#1a2029" stroke-dasharray="2 4"/>
+    <text x="${padL - 6}" y="${yScale(v) + 3}" text-anchor="end" fill="#7f8693" font-size="9" font-family="JetBrains Mono, monospace">${v.toFixed(1)}</text>`).join("");
+  const ticks = [0, 12, 24, 36].map(m => `<text x="${xScale(m)}" y="${h - 10}" text-anchor="middle" fill="#7f8693" font-size="9" font-family="JetBrains Mono, monospace">M${m}</text>`).join("");
+  container.innerHTML = `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="FLOPS per dollar trajectory over 36 months for top 6 SKUs.">
+    <text x="${padL - 6}" y="14" text-anchor="end" fill="#7f8693" font-size="9" font-family="JetBrains Mono, monospace">PFLOPS/$</text>
+    ${grid}${ticks}${pathsHtml}${legend}
+  </svg>`;
+  const body = document.getElementById("extra2-data-body");
+  if (body) body.innerHTML = allData.flatMap(d => [0, 12, 24, 36].map(m => `<tr><td>M${m}</td><td>${d.sku}</td><td>${d.series[m].toFixed(2)}</td></tr>`)).join("");
+}
+
 // ========== Init ==========
 async function init() {
   updateConnStripOnly();
@@ -1993,6 +2033,7 @@ async function init() {
   wireKpiTilt();
   startLiveTicks();
   renderExtraPanel();
+  renderExtra2Panel();
 
   const src = result.ok ? `real Yahoo Finance data for ${result.count} tickers` : "simulated data (live feed unavailable)";
   announce(`Dashboard ready with ${src}.`);
