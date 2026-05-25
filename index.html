@@ -85,7 +85,7 @@
 
       <div class="strategy-bar">
         <fieldset class="strategy-fieldset">
-          <legend>Trading strategies <span class="legend-hint">pick one or more — signals combine</span></legend>
+          <legend>Pricing strategies <span class="legend-hint">pick one or more — signals combine</span></legend>
           <div class="strategy-options" id="strategy-options"></div>
         </fieldset>
       </div>
@@ -366,6 +366,7 @@
           <nav aria-labelledby="methodology-toc-heading" class="methodology-toc">
             <h3 id="methodology-toc-heading">On this page</h3>
             <ol>
+              <li><a href="#m-abstract">Abstract</a></li>
               <li><a href="#m-model">Stochastic model</a></li>
               <li><a href="#m-calib">Calibration</a></li>
               <li><a href="#m-impl">Numerical implementation</a></li>
@@ -379,6 +380,9 @@
           </nav>
 
           <article class="methodology-article">
+            <h3 id="m-abstract">Abstract</h3>
+            <p>This dashboard implements a multi-factor jump-diffusion forecasting layer over AI accelerator spot pricing across the public cloud and broker markets. We extend the classical Merton jump-diffusion (<cite>Merton, 1976</cite>) with a utilization-driven mean-reversion term and an explicit Poisson architecture-step jump intensity, motivated by the empirical observation that NVIDIA-cycle launch events compress prior-gen spot prices by 15–25% over ~90 days (<cite>Patel, 2024</cite>). Pure geometric Brownian motion is inadequate because secular Moore's-law drift and discrete vendor revaluations dominate idiosyncratic noise; structural agent-based models are over-parameterized at the available data window. The token-economics layer extends the price forecast to inference-workload cost-per-million-tokens at workload-specific FLOPS-utilization (<cite>Hoffmann et al., 2022</cite>).</p>
+
             <h3 id="m-model">Stochastic model</h3>
             <p>The AI accelerator spot market is structurally different from a commodities market because the underlying asset is on a Moore's-law curve and undergoes <em>discrete architectural revaluations</em> at vendor product launches. Naive geometric Brownian motion is therefore inappropriate: the secular price trajectory is downward (with intermittent jumps that abruptly accelerate the trajectory), the demand side reacts asymmetrically to large LLM training campaigns, and the supply side responds to hyperscaler capex on a quarterly cadence with multi-quarter lag. We model the log spot price <code>p_t</code> as a multi-factor jump-diffusion:</p>
       <p class="m-eq"><span role="math" aria-label="d log p sub t equals alpha sub t minus beta times u sub t, dt, plus sigma dW sub t, plus J sub t times dN sub t">d log p_t = ( α_t − β · u_t ) dt + σ dW_t + J_t dN_t</span></p>
