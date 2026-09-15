@@ -1,5 +1,5 @@
 /* ========================================================================
-   SentimentTradingView — terminal / Bloomberg aesthetic
+   Compute Market Monitor — capacity desk
    ======================================================================== */
 
 :root {
@@ -37,6 +37,7 @@
   --h-pad: 16px;
   --r: 4px;
 }
+
 
 * { box-sizing: border-box; }
 
@@ -110,7 +111,7 @@ button, select, input[type="range"] { font-family: inherit; font-size: inherit; 
   padding: 14px 18px 28px;
 }
 
-/* ====================== Terminal top bar ====================== */
+/* ====================== Compact status bar ====================== */
 .term-strip {
   display: flex;
   flex-wrap: wrap;
@@ -1397,66 +1398,6 @@ table.stocks tbody tr:focus-visible {
   letter-spacing: 0.04em;
 }
 
-/* 8. Boot overlay */
-.boot-overlay {
-  position: fixed;
-  inset: 0;
-  background: #000;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-}
-.boot-overlay[hidden] { display: none; }
-.boot-inner {
-  width: min(720px, 100%);
-  position: relative;
-  background: #000;
-  border: 1px solid var(--accent);
-  border-radius: var(--r);
-  padding: 24px 28px 28px;
-  box-shadow: 0 0 40px rgba(0,255,136,0.12), inset 0 0 60px rgba(0, 217, 255, 0.04);
-}
-.boot-skip {
-  position: absolute;
-  top: 10px; right: 10px;
-  background: transparent;
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: 2px;
-  padding: 4px 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  cursor: pointer;
-}
-.boot-skip:hover { background: var(--accent-bg); }
-.boot-log {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--accent);
-  white-space: pre-wrap;
-  margin: 0;
-  line-height: 1.7;
-  min-height: 180px;
-  text-shadow: 0 0 6px rgba(0,255,136,0.45);
-}
-.boot-log .ok { color: var(--accent); }
-.boot-log .dim { color: var(--text-muted); }
-.boot-log .cursor {
-  display: inline-block;
-  width: 8px; height: 14px;
-  background: var(--accent);
-  vertical-align: -2px;
-  animation: caret 900ms steps(2, end) infinite;
-}
-@keyframes caret { 50% { opacity: 0; } }
-.boot-overlay.fadeout { animation: bootFade 420ms var(--ease-out-quart) forwards; }
-@keyframes bootFade { to { opacity: 0; visibility: hidden; } }
-
 /* 9. Gauges */
 .gauge-box { padding-top: 10px; }
 .gauge-wrap {
@@ -1964,12 +1905,6 @@ html { scroll-behavior: smooth; }
   outline: 2px solid var(--focus);
   outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.7);
-}
-
-/* Stronger boot-overlay backdrop so partial layouts under it are not visible */
-.boot-overlay {
-  background: rgba(0, 0, 0, 0.96);
-  backdrop-filter: blur(2px);
 }
 
 /* Make TOC links easier to click + clearer hover */

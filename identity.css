@@ -1,0 +1,12 @@
+/* Compute Market Monitor: dense infrastructure pricing console. */
+:root { --bg:#071016; --bg-elev-1:#0c1820; --bg-elev-2:#11222c; --bg-elev-3:#18313d; --border:#203c49; --border-strong:#315667; --text:#e4f2f5; --text-muted:#8bacb7; --text-dim:#668793; --accent:#32c7b5; --accent-dim:#1a8e82; --accent-bg:rgba(50,199,181,.1); --focus:#32c7b5; --r:0; }
+body::before { background:linear-gradient(90deg,rgba(50,199,181,.025) 1px,transparent 1px),linear-gradient(rgba(50,199,181,.02) 1px,transparent 1px); background-size:32px 32px; }
+.app { max-width:1680px; padding:0 20px 38px; }
+.ticker-tape-wrap { border-inline:1px solid var(--border); }
+.term-strip { border:0; border-bottom:1px solid var(--border-strong); margin:0 -20px 22px; padding-inline:20px; }
+.app-header { border-bottom:0; padding:12px 0 18px; }
+.app-header h1 { font-size:18px; letter-spacing:.02em; text-transform:none; }
+.hero { background:linear-gradient(110deg,#102a35,#08151c 62%); border:1px solid var(--border-strong); border-radius:0; }
+.hero-h { font-size:clamp(32px,5vw,68px); letter-spacing:-.04em; text-transform:none; }
+.section,.controls-block { border-radius:0; }
+

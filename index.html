@@ -4,26 +4,17 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="color-scheme" content="dark" />
-<title>GPUComputeTerminal — AI Compute Spot Pricing</title>
-<meta name="description" content="Terminal-style Monte Carlo dashboard for AI GPU/accelerator spot pricing with hyperscaler capex tracking, model release sentiment, and token economics." />
+<title>Compute Market Monitor — AI Compute Spot Pricing</title>
+<meta name="description" content="Compute capacity pricing monitor for AI GPU/accelerator spot pricing with hyperscaler capex tracking, model release sentiment, and token economics." />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="identity.css" />
 </head>
 <body>
 
 <a href="#main" class="skip-link">Skip to main content</a>
-
-<!-- ===== Boot overlay ===== -->
-<div id="boot-overlay" class="boot-overlay" role="dialog" aria-modal="true" aria-labelledby="boot-title" hidden>
-  <div class="boot-inner">
-    <button type="button" id="boot-skip" class="boot-skip">Skip intro</button>
-    <h2 id="boot-title" class="sr-only">Terminal boot sequence</h2>
-    <pre id="boot-log" class="boot-log" aria-live="polite" aria-atomic="false"></pre>
-    <p class="boot-hint sr-only">Press Escape to skip the boot animation.</p>
-  </div>
-</div>
 
 <div class="app">
 
@@ -36,11 +27,11 @@
     <div id="ticker-tape-sr" class="sr-only" aria-live="off"></div>
   </div>
 
-  <!-- ===== Terminal top strip ===== -->
+  <!-- ===== Compact status strip ===== -->
   <div class="term-strip" role="status" aria-label="Session status">
     <span class="kv"><span class="brand-dot" aria-hidden="true"></span><span>GCT</span></span>
     <span class="kv"><span>WATCH</span> <span class="v" id="term-watch">10</span></span>
-    <span class="kv term-conn initializing" id="term-conn" aria-label="Data feed connection status">
+    <span class="kv term-conn initializing" id="term-conn" aria-label="Scenario data status">
       <span class="conn-shape" aria-hidden="true"></span>
       <span id="term-conn-label">INIT</span>
       <span class="v" id="term-conn-src">—</span>
@@ -56,7 +47,7 @@
   <!-- ===== Feed banner (only visible when real feed falls back) ===== -->
   <div id="feed-banner" class="feed-banner" role="status" hidden>
     <span class="feed-banner-icon" aria-hidden="true">!</span>
-    <span class="feed-banner-text" id="feed-banner-text">Live feed unavailable — showing simulated data.</span>
+    <span class="feed-banner-text" id="feed-banner-text">Scenario snapshot unavailable — using embedded seed data.</span>
     <button type="button" id="feed-retry" class="feed-btn">Retry</button>
     <button type="button" id="feed-dismiss" class="feed-btn feed-btn-icon" aria-label="Dismiss feed notice">×</button>
   </div>
@@ -67,12 +58,12 @@
   <!-- ===== Header ===== -->
   <header class="app-header" role="banner">
     <div>
-      <h1>GPUComputeTerminal // Terminal</h1>
-      <p class="subtitle">Monte Carlo dashboard for AI accelerator spot prices. Track hyperscaler capex, model release sentiment, and token-per-dollar economics.</p>
+      <h1>Compute Market Monitor </h1>
+      <p class="subtitle">Capacity pricing and workload economics in one compact market view.</p>
     </div>
     <div class="header-meta" aria-label="Data status">
-      <span><span class="live-dot" aria-hidden="true"></span>Live ticks</span>
-      <span>Last update: <time id="last-update" datetime="">—</time></span>
+      <span><span class="live-dot" aria-hidden="true"></span>Scenario replay</span>
+      <span>Snapshot checked: <time id="last-update" datetime="">—</time></span>
     </div>
   </header>
 
@@ -81,10 +72,10 @@
     <section class="hero" aria-labelledby="hero-heading">
       <div class="hero-grid">
         <div class="hero-text">
-          <p class="hero-eyebrow"><span class="hero-dot" aria-hidden="true"></span> GCT · 10 SKUs · WCAG 2.2 AA</p>
-          <h2 id="hero-heading" class="hero-h">GPUComputeTerminal</h2>
-          <p class="hero-sub">Monte Carlo dashboard for AI accelerator spot prices. Track hyperscaler capex, model release sentiment, and token-per-dollar economics.</p>
-          <p class="hero-abstract">This dashboard implements a multi-factor jump-diffusion forecasting layer over AI accelerator spot pricing across the public cloud and broker markets. We extend the classical Merton jump-diffusion (Merton, 1976) with a…</p>
+          <p class="hero-eyebrow"><span class="hero-dot" aria-hidden="true"></span> CAPACITY DESK · 10 ACCELERATORS · SYNTHETIC PRICES</p>
+          <h2 id="hero-heading" class="hero-h">Compute Market Monitor</h2>
+          <p class="hero-sub">Compare accelerator hourly costs, scarcity signals, and workload economics across a synthetic market snapshot.</p>
+          <p class="hero-abstract">Every scenario is reproducible from the visible seed and horizon. Prices are illustrative; the useful output is the comparison workflow, not a purchasing recommendation.</p>
           <p class="hero-actions">
             <a class="hero-link" href="#dashboard-title" id="hero-skip">Skip to live dashboard ↓</a>
             <a class="hero-link" href="#methodology-section">Read methodology</a>
@@ -165,7 +156,7 @@
       </div>
 
       <span id="live-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></span>
-      <p id="status-line" class="status-line" aria-hidden="true">Ready. Select strategies and a ticker, then run a simulation.</p>
+      <p id="status-line" class="status-line" aria-hidden="true">Ready. Choose pricing inputs, then run the scenario.</p>
     </section>
 
     <!-- ===== Main grid: content + right rail ===== -->
@@ -173,11 +164,11 @@
 
       <div class="main-col">
 
-        <!-- ===== Portfolio KPIs ===== -->
+        <!-- ===== Summary metrics ===== -->
         <section aria-labelledby="perf-heading">
           <div class="section-header tight">
-            <h2 id="perf-heading">Portfolio performance</h2>
-            <span class="subtext">Equal-weight — all SKUs</span>
+            <h2 id="perf-heading">Market overview</h2>
+            <span class="subtext">Tracked accelerator basket</span>
           </div>
           <div class="kpi-strip" id="kpi-strip"></div>
         </section>
@@ -186,17 +177,17 @@
         <section aria-labelledby="heatmap-heading" class="heatmap-section">
           <div class="section-header tight">
             <h2 id="heatmap-heading">Watchlist heatmap</h2>
-            <span class="subtext">Tile color = today change · size = portfolio weight</span>
+            <span class="subtext">Colour = latest price move · size = relative hourly cost</span>
           </div>
           <div class="heatmap" id="heatmap" role="list" aria-label="Watchlist heatmap by today's change"></div>
         </section>
 
-        <!-- ===== Individual stocks ===== -->
+        <!-- ===== Accelerator catalogue ===== -->
         <section class="section" aria-labelledby="stocks-heading">
           <div class="section-header">
             <div>
-              <h2 id="stocks-heading">Individual SKUs // tracked</h2>
-              <p class="subtext">Every SKU tracked in the GCT dashboard. Action column = combined signal (BUY / AVOID / WAIT) from your selected strategies. Click a row to drill down.</p>
+              <h2 id="stocks-heading">Accelerator catalogue</h2>
+              <p class="subtext">The fixed SKU set used in this study. Cost band combines the selected inputs; choose a row to inspect its scenario.</p>
             </div>
             <span id="aggregate-signal" aria-live="polite"></span>
           </div>
@@ -221,14 +212,14 @@
               <tbody id="stocks-body"></tbody>
             </table>
           </div>
-          <p class="table-help subtext" id="table-help">Tip: click any row or press Enter on a focused row to select that ticker.</p>
+          <p class="table-help subtext" id="table-help">Choose a row, or press Enter from the keyboard, to inspect a SKU.</p>
         </section>
 
         <!-- ===== Detail for selected ticker ===== -->
         <section class="section" aria-labelledby="detail-heading" id="detail-section">
           <div class="section-header">
             <div>
-              <h2 id="detail-heading">Detail // <span id="detail-ticker">—</span> <span id="detail-name" class="subtext"></span></h2>
+              <h2 id="detail-heading">SKU detail · <span id="detail-ticker">—</span> <span id="detail-name" class="subtext"></span></h2>
               <p class="subtext" id="detail-subtitle">Click a row in the table above to drill into a specific SKU.</p>
             </div>
             <span id="detail-signal" aria-live="polite"></span>
@@ -279,7 +270,7 @@
           </div>
 
           <div>
-            <h3 id="strategy-breakdown-heading">Per-strategy signals // <span id="detail-ticker-2">—</span></h3>
+            <h3 id="strategy-breakdown-heading">Pricing input breakdown · <span id="detail-ticker-2">—</span></h3>
             <div class="strategy-grid" id="strategy-grid" aria-labelledby="strategy-breakdown-heading"></div>
           </div>
         </section>
@@ -306,8 +297,8 @@
           <p class="rail-box-sub" id="rail-winrate-sub">Pr(MC final &gt; entry)</p>
         </div>
         <div class="rail-box gauge-box" id="rail-sharpe">
-          <p class="rail-box-label">Sharpe</p>
-          <div class="gauge-wrap" id="gauge-sharpe" role="img" aria-label="Sharpe gauge">
+          <p class="rail-box-label">Price stability</p>
+          <div class="gauge-wrap" id="gauge-sharpe" role="img" aria-label="Price stability gauge">
             <svg class="gauge" viewBox="0 0 120 68" aria-hidden="true">
               <path class="gauge-track" d="M10,60 A50,50 0 0,1 110,60"/>
               <path class="gauge-fill" id="gauge-sharpe-arc" d="M10,60 A50,50 0 0,1 110,60"/>
@@ -317,12 +308,12 @@
             </svg>
           </div>
           <p class="rail-box-value" id="rail-sharpe-val">—</p>
-          <p class="rail-box-sub" id="rail-sharpe-sub">Ex-ante · rf 4.5%</p>
+          <p class="rail-box-sub" id="rail-sharpe-sub">Normalised dispersion</p>
         </div>
         <div class="rail-box" id="rail-er">
           <p class="rail-box-label">E[R]</p>
           <p class="rail-box-value" id="rail-er-val">—</p>
-          <p class="rail-box-sub" id="rail-er-sub">Portfolio, 30d</p>
+          <p class="rail-box-sub" id="rail-er-sub">Accelerators · 30d</p>
         </div>
         <div class="rail-box down gauge-box" id="rail-var">
           <p class="rail-box-label">VaR 95%</p>
@@ -396,97 +387,16 @@
           <table class="sr-only" id="extra4-data-table"><caption>Parameter-grid heatmap values</caption><thead><tr><th scope="col">σ</th><th scope="col">λ</th><th scope="col">Outcome (12-mo log-return CI95 width)</th></tr></thead><tbody id="extra4-data-body"></tbody></table>
         </section>
         <section class="section methodology" aria-labelledby="methodology-heading" id="methodology-section">
-          <div class="section-header">
-            <div>
-              <h2 id="methodology-heading">Methodology &amp; model</h2>
-              <p class="subtext">Dissertation-grade technical write-up of the stochastic process, calibration, glossary, worked example, sensitivity analysis, comparison to alternatives, and references for the SKU layer of this dashboard.</p>
-            </div>
-            <span class="subtext">WCAG 2.2 AA · 10 citations</span>
-          </div>
-
-          <nav aria-labelledby="methodology-toc-heading" class="methodology-toc">
-            <h3 id="methodology-toc-heading">On this page</h3>
-            <ol>
-              <li><a href="#m-abstract">Abstract</a></li>
-              <li><a href="#m-model">Stochastic model</a></li>
-              <li><a href="#m-calib">Calibration</a></li>
-              <li><a href="#m-impl">Numerical implementation</a></li>
-              <li><a href="#m-glossary">Glossary &amp; notation</a></li>
-              <li><a href="#m-example">Worked example</a></li>
-              <li><a href="#m-sens">Sensitivity analysis</a></li>
-              <li><a href="#m-alt">Comparison vs alternative approaches</a></li>
-              <li><a href="#m-valid">Empirical validation</a></li>
-              <li><a href="#m-limits">Known limitations</a></li>
-              <li><a href="#m-future">Open questions &amp; future work</a></li>
-              <li><a href="#m-code">Code &amp; data</a></li>
-              <li><a href="#m-refs">References</a></li>
-            </ol>
-          </nav>
-
+          <div class="section-header"><div><h2 id="methodology-heading">How the pricing study works</h2><p class="subtext">Inputs, calculation choices, and limits in practical terms.</p></div><span class="subtext">Deterministic browser model</span></div>
           <article class="methodology-article">
-            <h3 id="m-abstract">Abstract</h3>
-            <p>This dashboard implements a multi-factor jump-diffusion forecasting layer over AI accelerator spot pricing across the public cloud and broker markets. We extend the classical Merton jump-diffusion (<cite>Merton, 1976</cite>) with a utilization-driven mean-reversion term and an explicit Poisson architecture-step jump intensity, motivated by the empirical observation that NVIDIA-cycle launch events compress prior-gen spot prices by 15–25% over ~90 days (<cite>Patel, 2024</cite>). Pure geometric Brownian motion is inadequate because secular Moore's-law drift and discrete vendor revaluations dominate idiosyncratic noise; structural agent-based models are over-parameterized at the available data window. The token-economics layer extends the price forecast to inference-workload cost-per-million-tokens at workload-specific FLOPS-utilization (<cite>Hoffmann et al., 2022</cite>).</p>
-
-            <h3 id="m-model">Stochastic model</h3>
-            <p>The AI accelerator spot market is structurally different from a commodities market because the underlying asset is on a Moore's-law curve and undergoes <em>discrete architectural revaluations</em> at vendor product launches. Naive geometric Brownian motion is therefore inappropriate: the secular price trajectory is downward (with intermittent jumps that abruptly accelerate the trajectory), the demand side reacts asymmetrically to large LLM training campaigns, and the supply side responds to hyperscaler capex on a quarterly cadence with multi-quarter lag. We model the log spot price <code>p_t</code> as a multi-factor jump-diffusion:</p>
-      <p class="m-eq"><span role="math" aria-label="d log p sub t equals alpha sub t minus beta times u sub t, dt, plus sigma dW sub t, plus J sub t times dN sub t">d log p_t = ( α_t − β · u_t ) dt + σ dW_t + J_t dN_t</span></p>
-      <p>The secular drift <code>α_t</code> is negative (~−15% to −30%/yr depending on SKU position relative to the architecture frontier). The utilization-driven mean-reversion term <code>β · u_t</code>, with <code>u_t ∈ [0,1]</code> measuring fractional capacity in use across the public-cloud pool, prevents the spot price from collapsing during low-demand periods: when <code>u_t</code> rises toward 1 the effective drift becomes more negative (scarcity rent compresses), which is counter-intuitive but matches the observed Q3 2023 H100 stickiness.</p>
-      <p>The Poisson jump term <code>J_t dN_t</code> captures architecture-step events. Empirically (NVIDIA Hopper → Blackwell, Q4 2024) the launch of a next-gen SKU compresses the prior-gen spot by 15–25% over the subsequent 90-day window, with jump intensity <code>λ ≈ 0.5/yr</code> at NVIDIA's release cadence and lower for AMD/Google/AWS. <code>J_t</code> is drawn from a log-normal distribution with negative mean and variance estimated from the H100→B200, A100→H100, and V100→A100 transitions.</p>
-      <p>The token-economics layer (extra2 panel) converts spot price to delivered-token cost via the throughput identity <code>tokens/$ = (TFLOPS · η_util · ρ_workload) / ($/hr / 3600)</code> where <code>η_util</code> is realized utilization on the workload and <code>ρ_workload</code> is the bytes-per-FLOP intensity (Llama-70B inference: ~1.8; Stable Diffusion XL inference: ~3.2; training: ~0.3).</p>
-
-            <h3 id="m-calib">Calibration</h3>
-            <p>The secular drift <code>α_t</code> per SKU is calibrated against the public SemiAnalysis ASP curve and NVIDIA gross-margin disclosures in 10-Q filings. For NVIDIA SKUs the implied gross margin (>70% for Hopper, ≈68% for Blackwell pre-yield-mature) is consistent with the observed slow price decay; for AMD/Google/AWS the implied margins are lower (50–60%) and consistent with their faster initial price decay.</p>
-      <p>Diffusion <code>σ</code> is estimated from the broker-quoted spot tape aggregated across CoreWeave, Lambda Labs, Crusoe, RunPod, Vast.ai, and TensorDock for the 2023-09 to 2025-12 window. Cross-broker spreads of 20–35% are normal due to capacity-allocation heterogeneity; we use the median spot per SKU per day.</p>
-      <p>Utilization <code>u_t</code> is proxied by the spot-vs-reserved price ratio in the AWS p4d/p5/p5e instance families and by SemiAnalysis cluster-utilization estimates. The supply elasticity <code>β</code> is calibrated from the Q1 2024 H100 squeeze (utilization to 0.95, spot at $4.50/hr) and subsequent Q4 2024 normalization.</p>
-      <p>Hyperscaler capex (extra panel) pulls the most recent guidance from earnings calls: Microsoft FY26 ~$88B, Google ~$75B, Meta ~$65B, Amazon ~
-
-  </main>05B (AWS only), Oracle ~$25B, ByteDance ~$20B. The 2026 total of ~$378B drives <code>α_t</code> through the supply-additions channel with a 2-quarter lag.</p>
-
-            <h3 id="m-impl">Numerical implementation</h3>
-            <p>The MC engine generates 1000–10000 price paths via Euler–Maruyama with Poisson jumps for architecture-step events. The exact-step discretization is not applicable due to the jump component, so we use Δt = 1/252 (daily) which keeps the Euler bias under 0.5% for typical <code>σ</code>.</p>
-      <p>The FLOPS/$ trajectory (extra2) applies a smooth Moore's-law factor of <code>1.4× per 24 months</code> stacked with discrete +20–40% step revaluations at architecture launches. The 36-month curves shown in the second visualization panel use seed-deterministic noise so re-renders are stable.</p>
-      <p>The tornado sensitivity panel (extra3) computes single-parameter elasticities <code>∂ log(spot) / ∂ θ_i</code> at the calibrated baseline. The parameter grid heatmap (extra4) sweeps the (σ, jump-intensity) plane.</p>
-
-            <h3 id="m-glossary">Glossary &amp; notation</h3>
-            <p class="subtext">Symbols and domain terms used throughout the model. Symbol units are given where applicable.</p>
-            <dl class="methodology-glossary"><dt><span aria-label="p sub t">p_t</span></dt><dd>Hourly spot price for a given SKU at time t. <em>Units:</em> <code>USD/hr</code></dd><dt><span aria-label="alpha sub t">α_t</span></dt><dd>Secular drift driven by Moore's-law and capex additions. <em>Units:</em> <code>1/yr (log)</code></dd><dt><span aria-label="beta">β</span></dt><dd>Supply elasticity coefficient on utilization. <em>Units:</em> <code>1/yr (log)</code></dd><dt><span aria-label="u sub t">u_t</span></dt><dd>Cross-broker utilization fraction. <em>Units:</em> <code>fraction in [0,1]</code></dd><dt><span aria-label="sigma">σ</span></dt><dd>Idiosyncratic spot diffusion volatility. <em>Units:</em> <code>1/sqrt(yr)</code></dd><dt><span aria-label="J sub t">J_t</span></dt><dd>Architecture-step jump magnitude. <em>Units:</em> <code>log-fraction</code></dd><dt><span aria-label="lambda">λ</span></dt><dd>Jump intensity (Poisson rate). <em>Units:</em> <code>1/yr</code></dd><dt><span aria-label="eta utilization">η_util</span></dt><dd>Realized utilization on the workload (often 0.5–0.8). <em>Units:</em> <code>fraction</code></dd><dt><span aria-label="rho workload">ρ_workload</span></dt><dd>Workload intensity (bytes-per-FLOP). <em>Units:</em> <code>B/FLOP</code></dd><dt><span>TFLOPS</span></dt><dd>Trillion floating-point ops per second (FP16 unless noted). <em>Units:</em> <code>10¹² ops/s</code></dd><dt><span>PFLOPS</span></dt><dd>Peta-FLOPS = 10³ TFLOPS. <em>Units:</em> <code>10¹⁵ ops/s</code></dd><dt><span>Spot vs Reserved</span></dt><dd>Ratio of on-demand spot to 1-yr reserved; high values signal scarcity. <em>Units:</em> <code>ratio</code></dd><dt><span>ASP</span></dt><dd>Average Selling Price disclosed in vendor 10-K. <em>Units:</em> <code>USD</code></dd><dt><span>Capex</span></dt><dd>Capital expenditure on AI infrastructure (hyperscaler annual guidance). <em>Units:</em> <code>USD billions/yr</code></dd></dl>
-
-            <h3 id="m-example">Worked example</h3>
-            <p>End-to-end numerical walk-through of one Monte Carlo path for a representative SKU, showing how a single random draw translates through the model to a published statistic on the dashboard.</p>
-            <ol class="methodology-example"><li><strong>Inputs.</strong> Select H100. Calibrated baseline: spot $2.49/hr, α = −0.18/yr, β = 0.05/yr, σ = 0.45/sqrt(yr), u_t = 0.62, jump intensity λ = 0.5/yr. </li><li><strong>Drift contribution.</strong> Daily drift ≈ (α − β u) · Δt = (−0.18 − 0.05·0.62) · (1/252) = −0.000835. Without jumps, the 90-day expected log-return is −7.5%. <p class="m-eq" role="math" aria-label="expected delta log p over 90 days conditional on no jump equals 90 over 252 times the bracket alpha minus beta u, approximately negative 0.075">E[Δlog p | no jump]_{90d} = 90/252 · (−0.18 − 0.05 · 0.62) ≈ −0.075</p></li><li><strong>Jump risk.</strong> Probability of at least one architecture-step jump over 90 days: <code>1 − e^{−λ · 90/252} ≈ 16.4%</code>. Conditional jump magnitude E[J] ≈ −18%. </li><li><strong>Combined Monte Carlo.</strong> Run 5000 paths via Euler step. Empirical mean 90-day log-return: −10.1% (drift −7.5% + jump-risk-adjusted −2.6%). Empirical p05 = −24%, p95 = +6%. </li><li><strong>Token-economics translation.</strong> At spot $2.49/hr and Llama-70B inference throughput 12.5 tokens/s, tokens-per-dollar ≈ 18,000. A 10% spot compression raises this to ~20,000. </li></ol>
-
-            <h3 id="m-sens">Sensitivity analysis</h3>
-            <p>Tornado chart (extra3) shows that the architecture-step jump intensity <code>λ</code> dominates the 6-month forward variance — moving <code>λ</code> from 0.5/yr to 1.0/yr widens the 95% CI by 42%. Diffusion <code>σ</code> is second-largest; secular drift <code>α</code> matters most for the median but little for the tail. The parameter grid (extra4) shows that under (high σ, high λ) the realized tokens-per-dollar improvement over 12 months can exceed 3×.</p>
-
-            <h3 id="m-alt">Comparison vs alternative approaches</h3>
-            <p>Three standard alternative modeling choices were considered before the model above was selected.</p>
-            <ul class="methodology-alts"><li><strong>Pure GBM (no jumps).</strong> Cannot reproduce the abrupt H100 → B200 spot compression observed in Q1 2025; would underestimate forward variance by ~40%.</li><li><strong>Hidden-Markov regime switching.</strong> Adds a hidden state for 'glut' vs 'squeeze' regimes; more flexible but the regime parameters are weakly identified at the 2-year window we have.</li><li><strong>Structural agent-based model.</strong> Models individual hyperscalers as agents with budget constraints and capacity decisions; principled but requires assumptions about strategic behavior that exceed available data.</li></ul>
-
-            <h3 id="m-valid">Empirical validation</h3>
-            <p>Held-out backtest against the most recent calibration window: 70% in-sample / 30% out-of-sample split with walk-forward re-fitting at quarterly cadence. The dashboard's primary forward statistic tracks observed ground-truth within the stated 95% credible band for ≥87% of test periods, consistent with the model's nominal coverage. Re-calibration cadence is documented under "Calibration".</p>
-
-            <h3 id="m-limits">Known limitations</h3>
-            <ul><li>Hyperscaler capex figures are point-in-time guidance and change quarterly; the dashboard does not auto-fetch updated guidance.</li><li>Tokens-per-dollar is workload-dependent: Llama-70B inference numbers will not transfer to GPT-class autoregressive or diffusion workloads. Multiply by 0.3 for training, 1.8 for diffusion.</li><li>ROCm vs CUDA tooling-gap penalties for AMD parts are not modeled — gross perf-per-$ overstates AMD's deployable advantage by an estimated 1.5× for typical fine-tuning workloads.</li><li>Energy costs ($0.06–0.12/kWh) are folded into spot rate, not modeled separately; the data-center PUE distinction (1.15 for Google vs ~1.4 for older AWS regions) is invisible to this model.</li><li>Geopolitical export-control shocks (e.g. October 2023 H100 China ban) are modeled only as jumps; no separate factor.</li></ul>
-
-            <h3 id="m-future">Open questions &amp; future work</h3>
-            <ul class="methodology-future">
-                  <li>Extend the model to admit non-stationary regime shifts via hidden-Markov augmentation.</li>
-                  <li>Cross-domain transfer learning from analogous calibrated entities to reduce cold-start uncertainty.</li>
-                  <li>Bayesian hierarchical pooling to share strength across the SKUs cohort.</li>
-                  <li>Real-time recalibration from a streaming data source replacing the static snapshot.</li>
-                  <li>User-configurable parameter sliders bound to a live re-run of the Monte Carlo engine.</li>
-                </ul>
-
-            <h3 id="m-code">Code &amp; data</h3>
-            <p>The full source for the Monte Carlo engine, calibration notebook, and per-SKU parameter table is available at the project's <a href="https://github.com/pablowilliams/GPUComputeTerminal" rel="noopener">GitHub repository</a>. A reproducibility Jupyter notebook is planned for release alongside the next snapshot.</p>
-              <ul class="methodology-code">
-                <li><a href="https://github.com/pablowilliams/GPUComputeTerminal/blob/main/app.js" rel="noopener"><code>app.js</code></a> — engine, calibration, and rendering</li>
-                <li><a href="https://github.com/pablowilliams/GPUComputeTerminal/blob/main/data/quotes.json" rel="noopener"><code>data/quotes.json</code></a> — synthetic snapshot, refreshed every 6h by GitHub Action</li>
-                <li><a href="https://github.com/pablowilliams/GPUComputeTerminal/blob/main/.github/workflows/refresh-data.yml" rel="noopener"><code>.github/workflows/refresh-data.yml</code></a> — refresh cadence workflow</li>
-              </ul>
-
-            <h3 id="m-refs">References</h3>
-            <ol class="methodology-refs" aria-label="References"><li><cite>Patel, D. (2024). NVIDIA Hopper &amp; Blackwell Pricing Analysis. SemiAnalysis Quarterly Report.</cite></li><li><cite>Patel, D. &amp; Nishball, D. (2024). The Inference Economic Stack. SemiAnalysis White Paper.</cite></li><li><cite>Hennessy, J. L. &amp; Patterson, D. A. (2019). A New Golden Age for Computer Architecture. CACM 62(2).</cite></li><li><cite>NVIDIA Corporation (2024–2025). Form 10-Q and 10-K filings. SEC EDGAR.</cite></li><li><cite>Chowdhery, A. et al. (2023). PaLM: Scaling Language Modeling with Pathways. JMLR 24.</cite></li><li><cite>Hoffmann, J. et al. (2022). Training Compute-Optimal Large Language Models. arXiv:2203.15556 (Chinchilla scaling).</cite></li><li><cite>Kaplan, J. et al. (2020). Scaling Laws for Neural Language Models. arXiv:2001.08361.</cite></li><li><cite>AWS, Microsoft, Google, Meta, Oracle, ByteDance. (2025). Q4 earnings call capex guidance for FY26.</cite></li><li><cite>Crusoe Energy / CoreWeave / Lambda Labs (2024). Public spot pricing dashboards.</cite></li><li><cite>Merton, R. C. (1976). Option pricing when underlying stock returns are discontinuous. Journal of Financial Economics 3(1–2), 125–144. (Foundational jump-diffusion reference.)</cite></li></ol>
+            <h3>Calculation</h3>
+            <p>Each accelerator has a synthetic hourly price, drift, and dispersion. The browser generates seeded lognormal paths, then reports percentiles and workload-normalised comparisons. These are scenario ranges, not a live price forecast.</p>
+            <h3>Reproducibility</h3>
+            <p>The catalogue and price history are committed with the source. The same SKU, horizon, path count, and seed produce the same result.</p>
+            <h3>Limits</h3>
+            <ul><li>No provider API or broker feed is connected.</li><li>Availability, reservation terms, egress, support, and regional taxes are out of scope.</li><li>No historical forecast backtest or purchasing recommendation is claimed.</li><li>Values should be replaced with dated provider quotes before a real procurement decision.</li></ul>
+            <h3>Source</h3>
+            <p>Review the <a href="https://github.com/pablowilliams/compute-market-monitor/blob/main/app.js" rel="noopener">browser implementation</a> and <a href="https://github.com/pablowilliams/compute-market-monitor/blob/main/data/quotes.json" rel="noopener">versioned input snapshot</a>.</p>
           </article>
         </section>
 
@@ -510,8 +420,8 @@
   </svg>
 
   <footer class="app-footer" role="contentinfo">
-    <span>MC engine: Geometric Brownian Motion // GCT sentiment (simulated) // WCAG 2.2 AA</span>
-    <span class="brand-mark">GCT<span class="dot">.</span></span>
+    <span>Seeded price scenarios · synthetic inputs · no purchasing recommendation</span>
+    <span class="brand-mark">CMM<span class="dot">.</span></span>
   </footer>
 
 </div>

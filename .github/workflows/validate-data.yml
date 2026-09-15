@@ -1,0 +1,31 @@
+name: Validate scenario snapshot
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check JSON structure and history bounds
+        run: |
+          node -e "
+            const fs = require('fs');
+            const snapshot = JSON.parse(fs.readFileSync('./data/quotes.json', 'utf8'));
+            if (!snapshot.generatedAt || !snapshot.tickers || typeof snapshot.tickers !== 'object') throw new Error('Invalid snapshot envelope');
+            const entries = Object.entries(snapshot.tickers);
+            if (!entries.length) throw new Error('Snapshot has no entities');
+            for (const [key, value] of entries) {
+              if (!Number.isFinite(value.price) || !Number.isFinite(value.prevClose)) throw new Error(key + ': invalid price values');
+              if (!Array.isArray(value.closes) || value.closes.length < 30 || value.closes.some(v => !Number.isFinite(v))) throw new Error(key + ': invalid history');
+            }
+            console.log('Validated ' + entries.length + ' synthetic scenario records.');
+          "
