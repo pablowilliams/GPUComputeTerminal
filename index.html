@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css?v=2" />
-<link rel="stylesheet" href="identity.css?v=2" />
+<link rel="stylesheet" href="styles.css?v=4" />
+<link rel="stylesheet" href="identity.css?v=4" />
 </head>
 <body>
 
@@ -18,9 +18,9 @@
 
 <div class="app">
 
-  <!-- ===== Live ticker tape ===== -->
-  <div class="ticker-tape-wrap" role="region" aria-label="Live SKU ticker tape">
-    <button type="button" id="tape-toggle" class="tape-toggle" aria-pressed="false" aria-label="Pause ticker tape"><span aria-hidden="true" class="tape-icon">❚❚</span><span class="tape-toggle-lbl">Pause</span></button>
+  <!-- ===== Synthetic scenario tape ===== -->
+  <div class="ticker-tape-wrap" role="region" aria-label="Synthetic SKU scenario tape">
+    <button type="button" id="tape-toggle" class="tape-toggle" aria-pressed="false" aria-label="Pause scenario tape"><span aria-hidden="true" class="tape-icon">❚❚</span><span class="tape-toggle-lbl">Pause</span></button>
     <div class="ticker-tape-viewport">
       <div class="ticker-tape" id="ticker-tape" aria-hidden="true"></div>
     </div>
@@ -36,7 +36,7 @@
       <span id="term-conn-label">INIT</span>
       <span class="v" id="term-conn-src">—</span>
     </span>
-    <span class="kv" id="term-mkt-wrap"><span>MKT</span> <span class="v" id="term-market" title="US equity market session">—</span></span>
+    <span class="kv" id="term-mkt-wrap"><span>MODE</span> <span class="v" id="term-market" title="Deterministic scenario engine status">—</span></span>
     <span class="kv"><span>HORIZON</span> <span class="v" id="term-horizon">30D</span></span>
     <span class="kv"><span>PATHS</span> <span class="v" id="term-paths">1K</span></span>
     <span class="kv"><span>SEED</span> <span class="v" id="term-seed">42</span></span>
@@ -44,7 +44,7 @@
     <span class="kv ok"><span>UPTIME</span> <span class="v" id="term-uptime">00:00:00</span></span>
   </div>
 
-  <!-- ===== Feed banner (only visible when real feed falls back) ===== -->
+  <!-- ===== Snapshot fallback notice ===== -->
   <div id="feed-banner" class="feed-banner" role="status" hidden>
     <span class="feed-banner-icon" aria-hidden="true">!</span>
     <span class="feed-banner-text" id="feed-banner-text">Scenario snapshot unavailable — using embedded seed data.</span>
@@ -52,7 +52,7 @@
     <button type="button" id="feed-dismiss" class="feed-btn feed-btn-icon" aria-label="Dismiss feed notice">×</button>
   </div>
 
-  <!-- Session-status live region for connection/market transitions only -->
+  <!-- Accessible snapshot-status region -->
   <span id="session-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></span>
 
   <!-- ===== Header ===== -->
@@ -77,7 +77,7 @@
           <p class="hero-sub">Compare accelerator hourly costs, scarcity signals, and workload economics across a synthetic market snapshot.</p>
           <p class="hero-abstract">Every scenario is reproducible from the visible seed and horizon. Prices are illustrative; the useful output is the comparison workflow, not a purchasing recommendation.</p>
           <p class="hero-actions">
-            <a class="hero-link" href="#dashboard-title" id="hero-skip">Skip to live dashboard ↓</a>
+            <a class="hero-link" href="#dashboard-title" id="hero-skip">Go to scenario controls ↓</a>
             <a class="hero-link" href="#methodology-section">Read methodology</a>
           </p>
         </div>
@@ -111,7 +111,7 @@
     </section>
     <h2 id="dashboard-title" class="sr-only" tabindex="-1">SKU dashboard</h2>
 
-    <!-- ===== Strategy + controls ===== -->
+    <!-- ===== Scenario controls ===== -->
     <section class="controls-block" aria-labelledby="controls-heading">
       <h2 id="controls-heading" class="sr-only">Strategy and simulation controls</h2>
 
@@ -179,7 +179,7 @@
             <h2 id="heatmap-heading">Watchlist heatmap</h2>
             <span class="subtext">Colour = latest price move · size = relative hourly cost</span>
           </div>
-          <div class="heatmap" id="heatmap" role="list" aria-label="Watchlist heatmap by today's change"></div>
+          <div class="heatmap" id="heatmap" role="list" aria-label="Scenario comparison by latest synthetic change"></div>
         </section>
 
         <!-- ===== Accelerator catalogue ===== -->
@@ -193,20 +193,20 @@
           </div>
           <div class="table-wrap">
             <table class="stocks" id="stocks-table">
-              <caption class="sr-only">SKU list with current spot $/hr, today's change, expected Monte Carlo return, strategy action and sentiment.</caption>
+              <caption class="sr-only">Synthetic accelerator price catalogue with latest changes, scenario summaries, note balance, and cost bands.</caption>
               <thead>
                 <tr>
                   <th scope="col" aria-sort="none"><button type="button" data-sort="ticker">SKU <span class="sort-ind" aria-hidden="true">⇅</span></button></th>
                   <th scope="col">Accelerator</th>
                   <th scope="col" class="spark-col">60D</th>
                   <th scope="col" class="num" aria-sort="none"><button type="button" data-sort="price">Spot $/hr <span class="sort-ind" aria-hidden="true">⇅</span></button></th>
-                  <th scope="col" class="num" aria-sort="none"><button type="button" data-sort="change">Chg% <span class="sort-ind" aria-hidden="true">⇅</span></button></th>
-                  <th scope="col" class="num" aria-sort="none"><button type="button" data-sort="expRet">MC E[R] <span class="sort-ind" aria-hidden="true">⇅</span></button></th>
+                  <th scope="col" class="num" aria-sort="none"><button type="button" data-sort="change">Δ Cost <span class="sort-ind" aria-hidden="true">⇅</span></button></th>
+                  <th scope="col" class="num" aria-sort="none"><button type="button" data-sort="expRet">Scenario mean <span class="sort-ind" aria-hidden="true">⇅</span></button></th>
                   <th scope="col" class="num">95% CI</th>
-                  <th scope="col" class="num" aria-sort="none"><button type="button" data-sort="sentiment">Sent</button></th>
-                  <th scope="col">Pressure</th>
-                  <th scope="col">Conviction</th>
-                  <th scope="col">Action</th>
+                  <th scope="col" class="num" aria-sort="none"><button type="button" data-sort="sentiment">Notes</button></th>
+                  <th scope="col">Demand balance</th>
+                  <th scope="col">Agreement</th>
+                  <th scope="col">Cost band</th>
                 </tr>
               </thead>
               <tbody id="stocks-body"></tbody>
@@ -215,7 +215,7 @@
           <p class="table-help subtext" id="table-help">Choose a row, or press Enter from the keyboard, to inspect a SKU.</p>
         </section>
 
-        <!-- ===== Detail for selected ticker ===== -->
+        <!-- ===== Detail for selected item ===== -->
         <section class="section" aria-labelledby="detail-heading" id="detail-section">
           <div class="section-header">
             <div>
@@ -228,12 +228,12 @@
           <div class="grid-2">
             <figure class="chart-wrap" aria-labelledby="mc-heading">
               <span class="chart-crt-layer" aria-hidden="true"></span>
-              <h3 id="mc-heading">Monte Carlo price paths</h3>
+              <h3 id="mc-heading">Seeded scenario paths</h3>
               <div id="mc-chart" role="img" aria-label="Loading chart" tabindex="0" aria-describedby="mc-crosshair-help"></div>
               <p id="mc-crosshair-help" class="sr-only">Use left and right arrow keys to move the crosshair across trading days; press Home or End to jump to first or last day.</p>
               <div id="mc-crosshair-sr" class="sr-only" aria-live="polite" aria-atomic="true"></div>
-              <figcaption id="mc-caption">Run a simulation to see projected price paths.</figcaption>
-              <table class="sr-only" id="mc-data-table" aria-label="Monte Carlo summary statistics">
+              <figcaption id="mc-caption">Run the model to see reproducible scenario paths.</figcaption>
+              <table class="sr-only" id="mc-data-table" aria-label="Seeded scenario summary statistics">
                 <caption>Simulation summary</caption>
                 <thead><tr><th scope="col">Statistic</th><th scope="col">Value</th></tr></thead>
                 <tbody id="mc-data-body"></tbody>
@@ -241,7 +241,7 @@
             </figure>
 
             <div class="sentiment-wrap" aria-labelledby="sentiment-heading">
-              <h3 id="sentiment-heading">GCT chatter</h3>
+              <h3 id="sentiment-heading">Synthetic capacity notes</h3>
 
               <div class="sentiment-bars" role="img" aria-label="Sentiment distribution" id="sentiment-bars-wrap">
                 <div class="sentiment-bar-pos" id="sent-bar-pos" style="width: 0%"></div>
@@ -292,50 +292,50 @@
       <!-- ===== Right rail ===== -->
       <aside class="side-rail" aria-label="Key session metrics">
         <div class="rail-box" id="rail-winrate">
-          <p class="rail-box-label">Win rate</p>
+          <p class="rail-box-label">Price-up share</p>
           <p class="rail-box-value up" id="rail-winrate-val">—</p>
-          <p class="rail-box-sub" id="rail-winrate-sub">Pr(MC final &gt; entry)</p>
+          <p class="rail-box-sub" id="rail-winrate-sub">Final cost above start</p>
         </div>
-        <div class="rail-box gauge-box" id="rail-sharpe">
+        <div class="rail-box gauge-box" id="rail-stability">
           <p class="rail-box-label">Price stability</p>
-          <div class="gauge-wrap" id="gauge-sharpe" role="img" aria-label="Price stability gauge">
+          <div class="gauge-wrap" id="gauge-stability" role="img" aria-label="Price stability gauge">
             <svg class="gauge" viewBox="0 0 120 68" aria-hidden="true">
               <path class="gauge-track" d="M10,60 A50,50 0 0,1 110,60"/>
-              <path class="gauge-fill" id="gauge-sharpe-arc" d="M10,60 A50,50 0 0,1 110,60"/>
-              <line class="gauge-needle" id="gauge-sharpe-needle" x1="60" y1="60" x2="60" y2="16"/>
+              <path class="gauge-fill" id="gauge-stability-arc" d="M10,60 A50,50 0 0,1 110,60"/>
+              <line class="gauge-needle" id="gauge-stability-needle" x1="60" y1="60" x2="60" y2="16"/>
               <circle class="gauge-hub" cx="60" cy="60" r="4"/>
               <line class="gauge-tick" x1="60" y1="14" x2="60" y2="10" stroke-width="2"/>
             </svg>
           </div>
-          <p class="rail-box-value" id="rail-sharpe-val">—</p>
-          <p class="rail-box-sub" id="rail-sharpe-sub">Normalised dispersion</p>
+          <p class="rail-box-value" id="rail-stability-val">—</p>
+          <p class="rail-box-sub" id="rail-stability-sub">Normalised dispersion</p>
         </div>
         <div class="rail-box" id="rail-er">
-          <p class="rail-box-label">E[R]</p>
+          <p class="rail-box-label">Mean price change</p>
           <p class="rail-box-value" id="rail-er-val">—</p>
           <p class="rail-box-sub" id="rail-er-sub">Accelerators · 30d</p>
         </div>
-        <div class="rail-box down gauge-box" id="rail-var">
-          <p class="rail-box-label">VaR 95%</p>
-          <div class="gauge-wrap" id="gauge-var" role="img" aria-label="VaR gauge">
+        <div class="rail-box down gauge-box" id="rail-lower">
+          <p class="rail-box-label">Lower price bound</p>
+          <div class="gauge-wrap" id="gauge-lower" role="img" aria-label="Lower-tail scenario gauge">
             <svg class="gauge" viewBox="0 0 120 68" aria-hidden="true">
               <path class="gauge-track" d="M10,60 A50,50 0 0,1 110,60"/>
-              <path class="gauge-fill danger" id="gauge-var-arc" d="M10,60 A50,50 0 0,1 110,60"/>
-              <line class="gauge-needle danger" id="gauge-var-needle" x1="60" y1="60" x2="60" y2="16"/>
+              <path class="gauge-fill danger" id="gauge-lower-arc" d="M10,60 A50,50 0 0,1 110,60"/>
+              <line class="gauge-needle danger" id="gauge-lower-needle" x1="60" y1="60" x2="60" y2="16"/>
               <circle class="gauge-hub" cx="60" cy="60" r="4"/>
               <line class="gauge-tick" x1="60" y1="14" x2="60" y2="10" stroke-width="2"/>
             </svg>
           </div>
-          <p class="rail-box-value down" id="rail-var-val">—</p>
-          <p class="rail-box-sub" id="rail-var-sub">5th-percentile outcome</p>
+          <p class="rail-box-value down" id="rail-lower-val">—</p>
+          <p class="rail-box-sub" id="rail-lower-sub">5th-percentile outcome</p>
         </div>
         <div class="rail-box" id="rail-sent">
-          <p class="rail-box-label">Crowd score</p>
+          <p class="rail-box-label">Note balance</p>
           <p class="rail-box-value" id="rail-sent-val">—</p>
-          <p class="rail-box-sub">X net pos − neg</p>
+          <p class="rail-box-sub">Synthetic note balance</p>
         </div>
         <div class="rail-box" id="rail-buys">
-          <p class="rail-box-label">Buys/Sells</p>
+          <p class="rail-box-label">Cost-band split</p>
           <p class="rail-box-value" id="rail-buys-val">—</p>
           <p class="rail-box-sub" id="rail-buys-sub">SKU list</p>
         </div>
@@ -368,7 +368,7 @@
           <div class="section-header">
             <div>
               <h2 id="tornado-heading">Sensitivity analysis // tornado chart</h2>
-              <p class="subtext" id="extra3-subtitle">Single-parameter elasticities at the calibrated baseline. Each bar is the % change in the dashboard's primary forward statistic when the parameter is perturbed by the listed amount, holding all others constant. Bars sorted by absolute magnitude, largest impact first.</p>
+              <p class="subtext" id="extra3-subtitle">Single-parameter sensitivity at the configured baseline. Each bar is the % change in the dashboard's primary forward statistic when the parameter is perturbed by the listed amount, holding all others constant. Bars sorted by absolute magnitude, largest impact first.</p>
             </div>
             <span id="extra3-meta" class="subtext"></span>
           </div>
@@ -426,6 +426,6 @@
 
 </div>
 
-<script src="app.js?v=2"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>

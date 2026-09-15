@@ -1,15 +1,9 @@
 "use strict";
 
-/* =========================================================================
-   Domain-specific scenario analysis interface
-   =========================================================================
-   All data is mocked for the demo. Integration seams:
-     - fetchPrices()        -> Polygon / Alpaca / Finnhub REST + WS
-     - fetchStarredList()   -> TradingView watchlist API
-     - fetchSentiment()     -> X API v2 + VADER/FinBERT
-   ========================================================================= */
+/* Seeded browser-only scenario study. Inputs are versioned synthetic data.
+   Shared kernel field names are implementation details; domain adapters own the visible terminology. */
 
-// ========== Starred TradingView watchlist ==========
+// ========== Fixed synthetic catalogue ==========
 // mu = annualized drift (decimal), sigma = annualized volatility (decimal)
 const STARRED = [
   { ticker: "H100", name: "NVIDIA H100 80GB SXM", sector: "NVIDIA", price: 2.49, mu: -0.18, sigma: 0.45 },
@@ -24,7 +18,7 @@ const STARRED = [
   { ticker: "TRN2", name: "AWS Trainium2", sector: "AWS", price: 1.85, mu: -0.2, sigma: 0.36 },
 ];
 
-// Pre-compute a synthetic 60-day price history per ticker (for RSI / MAs).
+// Build a deterministic 60-step model history for each item.
 function generateHistory(stock, seed) {
   const rng = makeRng(seed + hashString(stock.ticker));
   const days = 60;
@@ -36,7 +30,7 @@ function generateHistory(stock, seed) {
     S = S * Math.exp((stock.mu - 0.5 * stock.sigma ** 2) * dt + stock.sigma * Math.sqrt(dt) * z);
     history[i] = S;
   }
-  // Anchor end to current price
+  // Anchor the final point to the configured index
   const scale = stock.price / history[days - 1];
   for (let i = 0; i < days; i++) history[i] *= scale;
   return history;
@@ -90,7 +84,7 @@ function rsi(arr, period = 14) {
   return 100 - 100 / (1 + rs);
 }
 
-// ========== Monte Carlo ==========
+// ========== seeded scenario ==========
 function monteCarlo({ S0, mu, sigma, days, nPaths, seed }) {
   const rng = makeRng(seed);
   const dt = 1 / 252;
@@ -160,7 +154,7 @@ function summarizeFinals(finals, S0) {
   };
 }
 
-// ========== Sentiment (mock X API) ==========
+// ========== Synthetic note sample ==========
 const SENTIMENT_POSTS = {
   "4090": [
     {
@@ -350,14 +344,14 @@ const STRATEGIES = [
   {
     id: "ma_cross",
     name: "Price MA Cross",
-    desc: "20/50-day",
+    desc: "20/50-period",
     apply: (ctx) => {
       const s20 = sma(ctx.history, 20);
       const s50 = sma(ctx.history, 50);
-      if (s20 == null || s50 == null) return { signal: "MID RANGE", detail: "Not enough history for 50-day MA." };
-      if (s20 > s50 * 1.005) return { signal: "LOWER COST",  detail: `20-day (${s20.toFixed(2)}) above 50-day (${s50.toFixed(2)}) — bullish trend.` };
-      if (s20 < s50 * 0.995) return { signal: "HIGHER COST", detail: `20-day (${s20.toFixed(2)}) below 50-day (${s50.toFixed(2)}) — bearish trend.` };
-      return { signal: "MID RANGE", detail: `20-day ≈ 50-day — consolidation.` };
+      if (s20 == null || s50 == null) return { signal: "MID RANGE", detail: "Not enough history for 50-period MA." };
+      if (s20 > s50 * 1.005) return { signal: "LOWER COST",  detail: `20-period (${s20.toFixed(2)}) above 50-period (${s50.toFixed(2)}) — rising trend.` };
+      if (s20 < s50 * 0.995) return { signal: "HIGHER COST", detail: `20-period (${s20.toFixed(2)}) below 50-period (${s50.toFixed(2)}) — falling trend.` };
+      return { signal: "MID RANGE", detail: `20-period ≈ 50-period — consolidation.` };
     },
   },
   {
@@ -374,7 +368,7 @@ const STRATEGIES = [
   {
     id: "momentum",
     name: "Capex Momentum",
-    desc: "20-day return",
+    desc: "20-period return",
     apply: (ctx) => {
       const h = ctx.history;
       if (h.length < 21) return { signal: "MID RANGE", detail: "Not enough data." };
@@ -394,19 +388,19 @@ const STRATEGIES = [
       const upside = ci95High;
       const downside = -ci95Low;
       const ratio = upside / Math.max(downside, 0.0001);
-      if (ratio > 1.3 && expectedReturn > 0.01) return { signal: "LOWER COST", detail: `Up/down ratio ${ratio.toFixed(2)}x, E[R] ${(expectedReturn * 100).toFixed(1)}%, Pr(up) ${(probUp * 100).toFixed(0)}%.` };
-      if (ratio < 0.8 && expectedReturn < -0.01) return { signal: "HIGHER COST", detail: `Up/down ratio ${ratio.toFixed(2)}x, E[R] ${(expectedReturn * 100).toFixed(1)}%, Pr(up) ${(probUp * 100).toFixed(0)}%.` };
+      if (ratio > 1.3 && expectedReturn > 0.01) return { signal: "LOWER COST", detail: `Up/down ratio ${ratio.toFixed(2)}x, Mean ${(expectedReturn * 100).toFixed(1)}%, Pr(up) ${(probUp * 100).toFixed(0)}%.` };
+      if (ratio < 0.8 && expectedReturn < -0.01) return { signal: "HIGHER COST", detail: `Up/down ratio ${ratio.toFixed(2)}x, Mean ${(expectedReturn * 100).toFixed(1)}%, Pr(up) ${(probUp * 100).toFixed(0)}%.` };
       return { signal: "MID RANGE", detail: `Up/down ratio ${ratio.toFixed(2)}x — no clear edge.` };
     },
   },
   {
     id: "x_sentiment",
-    name: "Infra Chatter",
+    name: "Infra Notes",
     desc: "net AI sentiment",
     apply: (ctx) => {
       const s = ctx.sentiment;
-      if (s.score > 0.25)  return { signal: "LOWER COST",  detail: `Net +${(s.score * 100).toFixed(0)} — crowd bullish.` };
-      if (s.score < -0.15) return { signal: "HIGHER COST", detail: `Net ${(s.score * 100).toFixed(0)} — crowd bearish.` };
+      if (s.score > 0.25)  return { signal: "LOWER COST",  detail: `Net +${(s.score * 100).toFixed(0)} — note balance positive.` };
+      if (s.score < -0.15) return { signal: "HIGHER COST", detail: `Net ${(s.score * 100).toFixed(0)} — note balance negative.` };
       return { signal: "MID RANGE", detail: `Net ${(s.score * 100).toFixed(0)} — mixed crowd.` };
     },
   },
@@ -417,8 +411,8 @@ function signalScore(signal) { return signal === "LOWER COST" ? 1 : signal === "
 function combineSignals(results) {
   if (!results.length) return { signal: "MID RANGE", detail: "Select at least one strategy." };
   const avg = results.reduce((a, r) => a + signalScore(r.signal), 0) / results.length;
-  if (avg > 0.35)  return { signal: "LOWER COST",    detail: "Majority bullish." };
-  if (avg < -0.35) return { signal: "HIGHER COST",   detail: "Majority bearish." };
+  if (avg > 0.35)  return { signal: "LOWER COST",    detail: "Majority positive." };
+  if (avg < -0.35) return { signal: "HIGHER COST",   detail: "Majority negative." };
   return { signal: "MID RANGE", detail: "Mixed strategy signals." };
 }
 
@@ -431,7 +425,7 @@ const state = {
   seed: 42,
   tableSort: { key: "ticker", dir: "asc" },
   stocks: null,     // enriched runtime stocks
-  portfolio: null,
+  cohort: null,
   mcResult: null,
   prevPrices: {},
   prevKpi: {},
@@ -452,8 +446,8 @@ const dataSource = {
   consecutiveErrors: 0,
   disabled: false,            // permanently offline for this session after N failures
   hasAnnouncedFallback: false,
-  realHistories: {},          // ticker -> [closes]
-  realCalibrations: {},       // ticker -> { mu, sigma }
+  snapshotHistories: {},          // ticker -> [closes]
+  snapshotCalibrations: {},       // ticker -> { mu, sigma }
   staticSnapshotAt: null,     // ISO timestamp from data/quotes.json when same-origin path used
   proxies: [
     (url) => "https://corsproxy.io/?" + encodeURIComponent(url),
@@ -461,7 +455,7 @@ const dataSource = {
   ],
   proxyIdx: 0,
 
-  // Same-origin static snapshot, refreshed by a GitHub Action cron. No CORS, no proxy.
+  // Same-origin static snapshot, refreshed by a GitHub Status cron. No CORS, no proxy.
   async loadSameOriginSnapshot() {
     try {
       const start = performance.now();
@@ -499,27 +493,27 @@ const dataSource = {
       for (const t of tickers) {
         const r = snap.data.tickers[t];
         if (r && r.price && Array.isArray(r.closes) && r.closes.length >= 20) {
-          this.realHistories[t] = r.closes.slice(-60);
-          this.realCalibrations[t] = this.calibrate(r.closes);
+          this.snapshotHistories[t] = r.closes.slice(-60);
+          this.snapshotCalibrations[t] = this.calibrate(r.closes);
           ok++;
         }
       }
       if (ok > 0) {
         this.lastLatencyMs = Math.round(snap.latencyMs);
         this.lastFetch = Date.now();
-        this.source = `STATIC ${ok}/${tickers.length}`;
-        this.setMode("live", "STATIC");
+        this.source = `BUNDLED ${ok}/${tickers.length}`;
+        this.setMode("live", "BUNDLED");
         return { ok: true, count: ok, source: "static" };
       }
     }
-    this.setMode("offline", "MOCK");
+    this.setMode("offline", "EMBEDDED");
     return { ok: false };
   },
 
   async pollQuotes(tickers) {
     const snap = await this.loadSameOriginSnapshot();
     if (!snap || !snap.data || !snap.data.tickers) {
-      this.setMode("delayed", this.source || "STATIC");
+      this.setMode("delayed", this.source || "BUNDLED");
       return false;
     }
     const updates = {};
@@ -540,7 +534,7 @@ const dataSource = {
     }
     this.lastLatencyMs = Math.round(snap.latencyMs);
     this.lastFetch = Date.now();
-    this.setMode("live", this.source || "STATIC");
+    this.setMode("live", this.source || "BUNDLED");
     return ok > 0;
   },
 
@@ -565,7 +559,7 @@ function nyTimeParts() {
   const minute = +parts.find((p) => p.type === "minute").value;
   return { weekday, mins: (hour % 24) * 60 + minute };
 }
-function marketStatus() { return "OPEN"; }
+function scenarioStatus() { return "READY"; }
 
 // ---- Connection-mode handlers ---------------------------------------
 function updateConnStripOnly() {
@@ -574,7 +568,7 @@ function updateConnStripOnly() {
   el.classList.remove("initializing", "live", "delayed", "offline");
   el.classList.add(dataSource.mode);
   setText("#term-conn-label", (
-    dataSource.mode === "live" ? "LIVE" :
+    dataSource.mode === "live" ? "SNAPSHOT" :
     dataSource.mode === "delayed" ? "DELAYED" :
     dataSource.mode === "offline" ? "OFFLINE" : "INIT"
   ));
@@ -602,13 +596,13 @@ function onConnModeChange(newMode, source) {
     if (sess) sess.textContent = `Snapshot check delayed. Source: ${source || ""}.`;
   } else if (newMode === "live") {
     if (banner && !banner.dataset.dismissed) banner.hidden = true;
-    if (sess) sess.textContent = `Scenario snapshot loaded. Source: ${source || "YF"}.`;
+    if (sess) sess.textContent = `Scenario snapshot loaded. Source: ${source || "LOCAL"}.`;
   }
 }
 
 let lastMarketStatus = null;
 function updateMarketStatus() {
-  const s = marketStatus();
+  const s = scenarioStatus();
   const el = $("#term-market");
   if (!el) return;
   el.textContent = s === "PRE" ? "PRE-MKT" : s === "AFTER" ? "AFT-HRS" : s;
@@ -616,7 +610,7 @@ function updateMarketStatus() {
   el.classList.add(s === "PRE" ? "pre" : s === "AFTER" ? "after" : s.toLowerCase());
   if (lastMarketStatus && lastMarketStatus !== s) {
     const sess = $("#session-status");
-    if (sess) sess.textContent = `US market status changed to ${s}.`;
+    if (sess) sess.textContent = `Scenario mode changed to ${s}.`;
   }
   lastMarketStatus = s;
   return s;
@@ -625,9 +619,9 @@ function updateMarketStatus() {
 // ========== Enrichment ==========
 function buildStocksRuntime() {
   const stocks = STARRED.map((s) => {
-    // Prefer versioned snapshot history and calibrated parameters when available
-    const realHist = dataSource.realHistories[s.ticker];
-    const cal = dataSource.realCalibrations[s.ticker];
+    // Use versioned snapshot history and its configured parameters when available
+    const realHist = dataSource.snapshotHistories[s.ticker];
+    const cal = dataSource.snapshotCalibrations[s.ticker];
     let history, mu, sigma, price, prevClose;
 
     if (realHist && realHist.length >= 20) {
@@ -655,18 +649,17 @@ function buildStocksRuntime() {
   return stocks;
 }
 
-function computePortfolioKpis(stocks) {
+function computeCohortKpis(stocks) {
   const w = 1 / stocks.length;
-  const pv = stocks.reduce((a, s) => a + s.price * 10, 0); // pretend 10 shares each
-  const prevPv = stocks.reduce((a, s) => a + s.prevClose * 10, 0);
+  const pv = stocks.reduce((a, s) => a + s.price, 0);
+  const prevPv = stocks.reduce((a, s) => a + s.prevClose, 0);
   const pnl = pv - prevPv;
   const pnlPct = pnl / prevPv;
 
   const expReturn = stocks.reduce((a, s) => a + w * s.mcSummary.expectedReturn, 0);
-  const var95 = stocks.reduce((a, s) => a + w * s.mcSummary.ci95Low, 0); // weighted downside
+  const lowerBound = stocks.reduce((a, s) => a + w * s.mcSummary.ci95Low, 0);
   const avgSigma = stocks.reduce((a, s) => a + w * s.sigma, 0);
-  const avgMu = stocks.reduce((a, s) => a + w * s.mu, 0);
-  const sharpe = (avgMu - 0.045) / Math.max(avgSigma, 0.01); // rf=4.5%
+  const stability = 1 / (1 + avgSigma);
 
   // weighted sentiment
   const sentScore = stocks.reduce((a, s) => a + w * s.sentiment.score, 0);
@@ -676,8 +669,8 @@ function computePortfolioKpis(stocks) {
     pnl,
     pnlPct,
     expectedReturn: expReturn,
-    var95,
-    sharpe,
+    lowerBound,
+    stability,
     sentimentScore: sentScore,
   };
 }
@@ -779,14 +772,14 @@ function deltaLabel(x) {
 
 let kpisBuilt = false;
 const kpiDefs = () => {
-  const k = state.portfolio;
+  const k = state.cohort;
   return [
     { id: "kpi-value",  label: "Basket hourly cost", value: k.value,           fmt: (v) => dollarFmt(v), mod: "accent",                              sub: `${state.stocks.length} SKUs · equal weight` },
     { id: "kpi-pnl",    label: "Current price change",       value: k.pnl,             fmt: (v) => dollarFmt(v), mod: k.pnl >= 0 ? "positive" : "negative",  valueMod: k.pnl >= 0 ? "up" : "down", subHtml: deltaLabel(k.pnlPct) },
-    { id: "kpi-er",     label: "Expected price change", value: k.expectedReturn,  fmt: (v) => pctFmt(v),    mod: k.expectedReturn >= 0 ? "positive" : "negative", valueMod: k.expectedReturn >= 0 ? "up" : "down", sub: `${state.horizon}-day · MC` },
-    { id: "kpi-var",    label: "95% cost bound",         value: k.var95,           fmt: (v) => pctFmt(v),    mod: "negative", valueMod: "down",           sub: "5th percentile" },
-    { id: "kpi-sharpe", label: "Price stability",          value: k.sharpe,          fmt: (v) => v.toFixed(2), mod: "accent",                              sub: "Normalised dispersion" },
-    { id: "kpi-sent",   label: "Crowd score",     value: k.sentimentScore,  fmt: (v) => pctFmt(v, 0), mod: k.sentimentScore >= 0 ? "positive" : "negative", valueMod: k.sentimentScore >= 0 ? "up" : "down", sub: "X net · pos − neg" },
+    { id: "kpi-er",     label: "Expected price change", value: k.expectedReturn,  fmt: (v) => pctFmt(v),    mod: k.expectedReturn >= 0 ? "positive" : "negative", valueMod: k.expectedReturn >= 0 ? "up" : "down", sub: `${state.horizon}-step · scenario` },
+    { id: "kpi-lower",    label: "95% cost bound",         value: k.lowerBound,           fmt: (v) => pctFmt(v),    mod: "negative", valueMod: "down",           sub: "5th percentile" },
+    { id: "kpi-stability", label: "Price stability",          value: k.stability,          fmt: (v) => v.toFixed(2), mod: "accent",                              sub: "Normalised dispersion" },
+    { id: "kpi-sent",   label: "Note balance",     value: k.sentimentScore,  fmt: (v) => pctFmt(v, 0), mod: k.sentimentScore >= 0 ? "positive" : "negative", valueMod: k.sentimentScore >= 0 ? "up" : "down", sub: "Embedded notes · pos − neg" },
   ];
 };
 
@@ -821,13 +814,13 @@ function renderKPIs() {
   const buys = state.stocks.filter((x) => getCombinedSignalForStock(x).signal === "LOWER COST").length;
   const sells = state.stocks.filter((x) => getCombinedSignalForStock(x).signal === "HIGHER COST").length;
   const avgProbUp = state.stocks.reduce((a, x) => a + x.mcSummary.probUp, 0) / state.stocks.length;
-  const k = state.portfolio;
+  const k = state.cohort;
 
   const railUpdates = [
     { sel: "#rail-winrate-val", value: avgProbUp * 100,      fmt: (v) => v.toFixed(1) + "%", up: avgProbUp >= 0.5 },
-    { sel: "#rail-sharpe-val",  value: k.sharpe,             fmt: (v) => v.toFixed(2),       up: null },
+    { sel: "#rail-stability-val",  value: k.stability,             fmt: (v) => v.toFixed(2),       up: null },
     { sel: "#rail-er-val",      value: k.expectedReturn,     fmt: (v) => pctFmt(v),          up: k.expectedReturn >= 0 },
-    { sel: "#rail-var-val",     value: k.var95,              fmt: (v) => pctFmt(v),          up: false },
+    { sel: "#rail-lower-val",     value: k.lowerBound,              fmt: (v) => pctFmt(v),          up: false },
     { sel: "#rail-sent-val",    value: k.sentimentScore,     fmt: (v) => pctFmt(v, 0),       up: k.sentimentScore >= 0 },
   ];
   railUpdates.forEach((r) => {
@@ -914,7 +907,7 @@ function renderStocksTable() {
     const spark60 = pctFmt((s.history[s.history.length - 1] - s.history[0]) / s.history[0]);
     const press = pressureFromStock(s);
     return `
-      <tr tabindex="0" role="button" aria-pressed="${selected}" aria-selected="${selected}" data-ticker="${s.ticker}" aria-label="${s.ticker}, ${s.name}. Price ${priceFmt(s.price)}, change ${pctFmt(s.change)}. 60-day trend ${spark60}. Buy pressure ${press.buyPct}%, sell pressure ${press.sellPct}%. Action ${s.combinedSignal.signal}, conviction ${conviction.score} of 8.">
+      <tr tabindex="0" role="button" aria-pressed="${selected}" aria-selected="${selected}" data-ticker="${s.ticker}" aria-label="${s.ticker}, ${s.name}. Current value ${priceFmt(s.price)}, latest change ${pctFmt(s.change)}. 60-period trend ${spark60}. Positive notes ${press.buyPct}%, negative notes ${press.sellPct}%. Status ${s.combinedSignal.signal}, evidence agreement ${conviction.score} of 8.">
         <td class="ticker"><span class="status-dot ${dotCls}" aria-hidden="true"></span><span class="ticker-text" data-text="${s.ticker}">${s.ticker}</span></td>
         <td class="name">${s.name}</td>
         <td class="spark-cell">${spark}</td>
@@ -973,7 +966,7 @@ function renderStocksTable() {
 }
 
 function convictionFromStock(s) {
-  // Composite score combining MC expected return, prob up, sentiment, magnitude — bucketed into 0..8
+  // Composite score combining scenario drift, higher-path share, note balance, and magnitude — bucketed into 0..8
   const mcs = s.mcSummary;
   const raw =
     0.5 * Math.tanh(mcs.expectedReturn * 8) +
@@ -988,7 +981,7 @@ function convictionBar({ score, neg }, animExtra = "") {
   const cells = Array.from({ length: 8 }, (_, i) =>
     `<span class="cell ${i < score ? "on" : ""} ${neg ? "neg" : ""}"></span>`
   ).join("");
-  const label = `Conviction ${score} of 8, ${neg ? "bearish" : "bullish"}`;
+  const label = `Evidence agreement ${score} of 8, ${neg ? "negative" : "positive"}`;
   return `<span class="bar${animExtra}" role="img" aria-label="${label}">${cells}</span>`;
 }
 
@@ -1068,8 +1061,8 @@ function renderChart(mc, stock, onComplete) {
   for (let i = 0; i <= 4; i++) gridVals.push(yMin + (yMax - yMin) * (i / 4));
 
   const s = mc.summary;
-  const captionText = `${mc.nPaths.toLocaleString()} Monte Carlo paths over ${mc.days} trading days. Expected price change ${pctFmt(s.expectedReturn)}, median ${pctFmt(s.medianReturn)}, 95% CI ${pctFmt(s.ci95Low)} to ${pctFmt(s.ci95High)}, probability of gain ${(s.probUp * 100).toFixed(0)}%.`;
-  const chartAriaLabel = `${stock.ticker} Monte Carlo chart. ${captionText}`;
+  const captionText = `${mc.nPaths.toLocaleString()} seeded scenario paths over ${mc.days} trading days. Expected price change ${pctFmt(s.expectedReturn)}, median ${pctFmt(s.medianReturn)}, 95% CI ${pctFmt(s.ci95Low)} to ${pctFmt(s.ci95High)}, probability of gain ${(s.probUp * 100).toFixed(0)}%.`;
+  const chartAriaLabel = `${stock.ticker} seeded scenario chart. ${captionText}`;
 
   // Build frame SVG with placeholders that will be animated in
   $("#mc-chart").innerHTML = `
@@ -1082,13 +1075,13 @@ function renderChart(mc, stock, onComplete) {
       <rect x="0" y="0" width="${svgW}" height="${svgH}" fill="transparent"></rect>
       ${gridVals.map((v) => `
         <line x1="${padL}" x2="${svgW - padR}" y1="${yScale(v)}" y2="${yScale(v)}" stroke="#1a2029" stroke-dasharray="2 4" />
-        <text x="${padL - 8}" y="${yScale(v) + 4}" fill="#7f8693" font-size="10" text-anchor="end" font-family="JetBrains Mono, monospace">$${v.toFixed(0)}</text>
+        <text x="${padL - 8}" y="${yScale(v) + 4}" fill="#7f8693" font-size="10" text-anchor="end" font-family="JetBrains Mono, monospace">${priceFmt(v)}</text>
       `).join("")}
       ${[0, Math.floor(days / 2), days].map((d) => `
-        <text x="${xScale(d)}" y="${svgH - 12}" fill="#7f8693" font-size="10" text-anchor="middle" font-family="JetBrains Mono, monospace">DAY ${d}</text>
+        <text x="${xScale(d)}" y="${svgH - 12}" fill="#7f8693" font-size="10" text-anchor="middle" font-family="JetBrains Mono, monospace">STEP ${d}</text>
       `).join("")}
       <line x1="${padL}" y1="${yScale(mc.S0)}" x2="${svgW - padR}" y2="${yScale(mc.S0)}" stroke="#d6dce4" stroke-opacity="0.18" stroke-width="1" stroke-dasharray="2 2"></line>
-      <text x="${svgW - padR}" y="${yScale(mc.S0) - 4}" fill="#7f8693" font-size="10" text-anchor="end" font-family="JetBrains Mono, monospace">S₀ = $${mc.S0.toFixed(2)}</text>
+      <text x="${svgW - padR}" y="${yScale(mc.S0) - 4}" fill="#7f8693" font-size="10" text-anchor="end" font-family="JetBrains Mono, monospace">S₀ = ${priceFmt(mc.S0)}</text>
       <g id="paths-layer" clip-path="url(#mc-reveal-clip)"></g>
       <line id="mc-sweep-line" x1="${padL}" y1="${padT - 2}" x2="${padL}" y2="${padT + innerH + 2}" stroke="#00ff88" stroke-width="1" stroke-opacity="0" style="filter: drop-shadow(0 0 6px rgba(0,255,136,0.6));"></line>
       <path id="mc-band" d="${bandPath()}" fill="rgba(0,255,136,0.08)" stroke="none" opacity="0"></path>
@@ -1096,24 +1089,24 @@ function renderChart(mc, stock, onComplete) {
       <path id="mc-p95" d="${toPath(mc.percentiles.p95)}" fill="none" stroke="#00ff88" stroke-width="1" stroke-dasharray="4 4" stroke-opacity="0.6" opacity="0"></path>
       <path id="mc-median" d="${toPath(mc.percentiles.p50)}" fill="none" stroke="#00ff88" stroke-width="2.25" stroke-linecap="round" opacity="0"></path>
       <text id="mc-counter" x="${padL}" y="${padT + 14}" font-size="11" text-anchor="start">0 / ${mc.nPaths.toLocaleString()} PATHS</text>
-      <text id="mc-day-label" x="${svgW - padR}" y="${padT + 14}" font-size="10" text-anchor="end" fill="#7f8693" font-family="JetBrains Mono, monospace">DAY 0 / ${days}</text>
+      <text id="mc-day-label" x="${svgW - padR}" y="${padT + 14}" font-size="10" text-anchor="end" fill="#7f8693" font-family="JetBrains Mono, monospace">STEP 0 / ${days}</text>
     </svg>
   `;
 
   $("#mc-caption").textContent = captionText;
   const body = $("#mc-data-body");
   body.innerHTML = [
-    ["Ticker", stock.ticker],
-    ["Start price", priceFmt(mc.S0)],
+    ["Reference", stock.ticker],
+    ["Start value", priceFmt(mc.S0)],
     ["Paths simulated", mc.nPaths.toLocaleString()],
-    ["Horizon (days)", mc.days],
+    ["Horizon (steps)", mc.days],
     ["Expected price change", pctFmt(s.expectedReturn)],
     ["Median return", pctFmt(s.medianReturn)],
     ["5th percentile", pctFmt(s.ci95Low)],
     ["95th percentile", pctFmt(s.ci95High)],
-    ["Probability of gain", (s.probUp * 100).toFixed(1) + "%"],
-    ["Mean final price", priceFmt(s.meanPrice)],
-    ["Median final price", priceFmt(s.medianPrice)],
+    ["Higher-path share", (s.probUp * 100).toFixed(1) + "%"],
+    ["Mean final value", priceFmt(s.meanPrice)],
+    ["Median final value", priceFmt(s.medianPrice)],
   ].map(([k, v]) => `<tr><th scope="row">${k}</th><td>${v}</td></tr>`).join("");
 
   // === Animate draw ===
@@ -1185,7 +1178,7 @@ function renderChart(mc, stock, onComplete) {
         // Fade out the sweep line, then reveal the summary overlays
         sweepLine.animate([{ strokeOpacity: 0.9 }, { strokeOpacity: 0 }], { duration: 360, easing: "cubic-bezier(0.22,1,0.36,1)", fill: "forwards" });
         revealOverlays();
-        counter.textContent = `${totalLabel} PATHS · E[R] ${pctFmt(s.expectedReturn)}`;
+        counter.textContent = `${totalLabel} PATHS · Mean ${pctFmt(s.expectedReturn)}`;
         setTimeout(() => {
           figure.classList.remove("simulating");
           if (onComplete) onComplete();
@@ -1221,7 +1214,7 @@ function renderSentiment(stock) {
     `Sentiment: ${(s.positive * 100).toFixed(0)}% positive, ${(s.neutral * 100).toFixed(0)}% neutral, ${(s.negative * 100).toFixed(0)}% negative.`);
 
   const list = $("#post-list");
-  const posts = s.posts.length ? s.posts : [{ sent: "neu", author: "@market_data", handle: "now", text: "No recent public chatter for this SKU." }];
+  const posts = s.posts.length ? s.posts : [{ sent: "neu", author: "@scenario", handle: "now", text: "No recent scenario notes for this SKU." }];
   list.innerHTML = posts.map((p) => `
     <li class="post ${p.sent}">
       <div class="post-meta">
@@ -1267,11 +1260,11 @@ function renderSummary() {
           <span class="summary-name">${s.sector}</span>
         </div>
         <p class="summary-body">
-          <strong>${s.name}</strong> at ${priceFmt(s.price)} (${pctFmt(s.change)} today). Monte Carlo across ${state.horizon} periods projects an expected return of <strong>${pctFmt(mcs.expectedReturn)}</strong> with a 95% CI of ${pctFmt(mcs.ci95Low, 1)} to ${pctFmt(mcs.ci95High, 1)}. GCT chatter is <strong>${sentDom}</strong> (net ${pctFmt(sent.score, 0)}). Overall, ${outlook}.
+          <strong>${s.name}</strong> at ${priceFmt(s.price)} (${pctFmt(s.change)} on latest update). seeded scenario across ${state.horizon} periods projects an mean change of <strong>${pctFmt(mcs.expectedReturn)}</strong> with a 95% CI of ${pctFmt(mcs.ci95Low, 1)} to ${pctFmt(mcs.ci95High, 1)}. GCT note balance is <strong>${sentDom}</strong> (net ${pctFmt(sent.score, 0)}). Overall, ${outlook}.
         </p>
         <div class="summary-footer">
           <span>${signalBadge(combined.signal, { context: combined.detail })}</span>
-          <span class="${mcs.expectedReturn >= 0 ? "delta-up" : "delta-down"}">E[R] ${pctFmt(mcs.expectedReturn)}</span>
+          <span class="${mcs.expectedReturn >= 0 ? "delta-up" : "delta-down"}">Mean ${pctFmt(mcs.expectedReturn)}</span>
         </div>
       </article>
     `;
@@ -1283,7 +1276,7 @@ function renderSummary() {
   const sell = all.filter((x) => x === "HIGHER COST").length;
   const uns = all.filter((x) => x === "MID RANGE").length;
   const winner = buy > sell && buy > uns ? "LOWER COST" : sell > buy && sell > uns ? "HIGHER COST" : "MID RANGE";
-  const agg = `${buy} BUY · ${uns} WAIT · ${sell} AVOID across ${all.length} SKUs.`;
+  const agg = `${buy} LOWER COST · ${uns} BALANCED · ${sell} HIGHER COST across ${all.length} SKUs.`;
   $("#aggregate-signal").innerHTML = signalBadge(winner, { context: agg });
   $("#summary-signal").innerHTML = signalBadge(winner, { context: agg });
 
@@ -1320,7 +1313,7 @@ function renderAll() {
   renderSummary();
 }
 
-// ========== Live tick simulation ==========
+// ========== Synthetic tick simulation ==========
 let tickTimer = null;
 let uptimeTimer = null;
 const bootTime = Date.now();
@@ -1360,17 +1353,17 @@ function startLiveTicks() {
 
   const tick = async () => {
     let usedReal = false;
-    const mkt = marketStatus();
+    const mkt = scenarioStatus();
     if (!dataSource.disabled && mkt !== "WEEKEND" && mkt !== "CLOSED") {
       try {
         usedReal = await dataSource.pollQuotes(state.stocks.map((s) => s.ticker));
       } catch (_) { usedReal = false; }
     }
     if (!usedReal) {
-      if (dataSource.disabled) dataSource.setMode("offline", "MOCK");
+      if (dataSource.disabled) dataSource.setMode("offline", "EMBEDDED");
       mockTick();
     }
-    state.portfolio = computePortfolioKpis(state.stocks);
+    state.cohort = computeCohortKpis(state.stocks);
     const now = new Date();
     const t = $("#last-update");
     t.textContent = now.toLocaleTimeString();
@@ -1386,10 +1379,10 @@ function startLiveTicks() {
     renderExtra4Panel();
   };
 
-  // Cadence: faster while market open, slower when closed, slowest when offline
+  // Cadence: quick for embedded animation, slower for snapshot checks
   const cadence = () => {
     if (dataSource.disabled) return 3000;
-    const m = marketStatus();
+    const m = scenarioStatus();
     if (m === "OPEN") return 7000;
     if (m === "PRE" || m === "AFTER") return 15000;
     return 30000;
@@ -1443,7 +1436,7 @@ function wireEvents() {
       const mc = monteCarlo({ S0: s.price, mu: s.mu, sigma: s.sigma, days: state.horizon, nPaths: 500, seed });
       s.mcSummary = mc.summary;
     }
-    state.portfolio = computePortfolioKpis(state.stocks);
+    state.cohort = computeCohortKpis(state.stocks);
     renderAll();
     announce(`Horizon set to ${state.horizon} trading days.`);
   });
@@ -1454,7 +1447,7 @@ function wireEvents() {
     state.seed = v;
     // Rebuild whole runtime (histories depend on seed)
     state.stocks = buildStocksRuntime();
-    state.portfolio = computePortfolioKpis(state.stocks);
+    state.cohort = computeCohortKpis(state.stocks);
     state.mcResult = null;
     renderAll();
     announce(`Random seed set to ${e.target.value}.`);
@@ -1500,7 +1493,7 @@ function wireEvents() {
     retryBtn.textContent = "Retry";
     if (ok.ok) {
       state.stocks = buildStocksRuntime();
-      state.portfolio = computePortfolioKpis(state.stocks);
+      state.cohort = computeCohortKpis(state.stocks);
       renderAll();
       banner.hidden = true;
     } else {
@@ -1560,7 +1553,7 @@ function sparklineSvg(history, upBias) {
   const areaD = lineD + ` L${w},${h} L0,${h} Z`;
   const first = vals[0].toFixed(2), last = vals[vals.length - 1].toFixed(2);
   const pct = (((vals[vals.length - 1] - vals[0]) / vals[0]) * 100).toFixed(1);
-  const label = `60-day trend ${dir}, ${pct}% (from $${first} to $${last})`;
+  const label = `60-period trend ${dir}, ${pct}% (from ${priceFmt(Number(first))} to ${priceFmt(Number(last))})`;
   return `<svg class="sparkline ${dir}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" role="img" aria-label="${label}"><path class="area" d="${areaD}"/><path class="line" d="${lineD}"/><circle class="dot" cx="${pts[pts.length-1][0].toFixed(1)}" cy="${pts[pts.length-1][1].toFixed(1)}" r="1.6"/></svg>`;
 }
 
@@ -1574,7 +1567,7 @@ function pressureBar(p) {
   const buyW = (p.buy * 50).toFixed(1);
   const sellW = (p.sell * 50).toFixed(1);
   return `
-    <div class="pressure" role="img" aria-label="Buy pressure ${p.buyPct}%, sell pressure ${p.sellPct}%">
+    <div class="pressure" role="img" aria-label="Positive notes ${p.buyPct}%, negative notes ${p.sellPct}%">
       <div class="pressure-bar" aria-hidden="true">
         <div class="pressure-fill sell" style="width: ${sellW}%"></div>
         <div class="pressure-fill buy"  style="width: ${buyW}%"></div>
@@ -1598,7 +1591,7 @@ function renderHeatmap() {
     return `
       <a class="heat-tile ${cls}" role="listitem" href="#detail-section" data-ticker="${s.ticker}"
          style="--heat-color:${color}; --heat-alpha:${alpha};"
-         aria-label="${s.ticker} ${s.name}, today ${pctStr}, price ${priceFmt(s.price)}. Click to select.">
+         aria-label="${s.ticker} ${s.name}, latest change ${pctStr}, current value ${priceFmt(s.price)}. Click to select.">
         <span class="ht-sym">${s.ticker}</span>
         <span class="ht-pct"><span aria-hidden="true">${arrow}</span>${pctStr}</span>
         <span class="ht-sub">${priceFmt(s.price)} · ${s.sector.split(" ")[0]}</span>
@@ -1741,27 +1734,26 @@ function setGauge(arcEl, needleEl, ratio, statusLabelEl, value, fmt, thresholds)
   }
 }
 function renderGauges() {
-  const k = state.portfolio;
+  const k = state.cohort;
   // Price stability: map [-1, 3] -> [0, 1]
-  const sharpeRatio = Math.max(0, Math.min(1, (k.sharpe + 1) / 4));
-  const sharpeStatus =
-    k.sharpe >= 1.5 ? "excellent" :
-    k.sharpe >= 0.8 ? "good" :
-    k.sharpe >= 0.3 ? "moderate" :
-    k.sharpe >= 0   ? "weak" : "negative";
-  setGauge($("#gauge-sharpe-arc"), $("#gauge-sharpe-needle"), sharpeRatio);
-  $("#gauge-sharpe").setAttribute("aria-label", `Price stability ${k.sharpe.toFixed(2)}, ${sharpeStatus} (target > 1.0)`);
-  setText("#rail-sharpe-sub", `Ex-ante · ${sharpeStatus}`);
+  const stabilityRatio = Math.max(0, Math.min(1, k.stability));
+  const stabilityStatus =
+    k.stability >= 0.85 ? "stable" :
+    k.stability >= 0.75 ? "steady" :
+    k.stability >= 0.65 ? "variable" : "volatile";
+  setGauge($("#gauge-stability-arc"), $("#gauge-stability-needle"), stabilityRatio);
+  $("#gauge-stability").setAttribute("aria-label", `Scenario stability ${k.stability.toFixed(2)}, ${stabilityStatus}; one is most stable`);
+  setText("#rail-stability-sub", `Dispersion index · ${stabilityStatus}`);
 
-  // VaR: more negative = worse. map [-0.30, 0] -> [1, 0] (more red = fuller arc)
-  const varRatio = Math.max(0, Math.min(1, -k.var95 / 0.30));
-  const varStatus =
-    k.var95 >= -0.05 ? "low risk" :
-    k.var95 >= -0.12 ? "moderate risk" :
-    k.var95 >= -0.20 ? "elevated risk" : "severe risk";
-  setGauge($("#gauge-var-arc"), $("#gauge-var-needle"), varRatio);
-  $("#gauge-var").setAttribute("aria-label", `Value at Risk 95 percent, ${pctFmt(k.var95)}, ${varStatus}`);
-  setText("#rail-var-sub", `5th pct · ${varStatus}`);
+  // Lower-tail scenario result: more negative fills more of the caution arc.
+  const lowerRatio = Math.max(0, Math.min(1, -k.lowerBound / 0.30));
+  const lowerStatus =
+    k.lowerBound >= -0.05 ? "low risk" :
+    k.lowerBound >= -0.12 ? "moderate risk" :
+    k.lowerBound >= -0.20 ? "elevated risk" : "severe risk";
+  setGauge($("#gauge-lower-arc"), $("#gauge-lower-needle"), lowerRatio);
+  $("#gauge-lower").setAttribute("aria-label", `Scenario 5th percentile, ${pctFmt(k.lowerBound)}, ${lowerStatus}`);
+  setText("#rail-lower-sub", `5th pct · ${lowerStatus}`);
 }
 
 // --- Chart crosshair (feature 10) ------------------------------------
@@ -2053,7 +2045,7 @@ async function init() {
   const result = await bootstrapPromise;
 
   state.stocks = buildStocksRuntime();
-  state.portfolio = computePortfolioKpis(state.stocks);
+  state.cohort = computeCohortKpis(state.stocks);
 
   renderStrategyOptions();
   renderTickerSelect();
@@ -2070,7 +2062,7 @@ async function init() {
   renderExtra3Panel();
   renderExtra4Panel();
 
-  const src = result.ok ? `versioned synthetic snapshot for ${result.count} tickers` : "embedded seed data (snapshot unavailable)";
+  const src = result.ok ? `versioned synthetic snapshot for ${result.count} entries` : "embedded seed data (snapshot unavailable)";
   announce(`Dashboard ready with ${src}.`);
 }
 
