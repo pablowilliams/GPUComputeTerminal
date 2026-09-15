@@ -424,7 +424,7 @@ function combineSignals(results) {
 
 // ========== State ==========
 const state = {
-  selectedTicker: "AAPL",
+  selectedTicker: "H100",
   selectedStrategies: new Set(["ma_cross", "mc_asymmetry", "x_sentiment"]),
   sims: 1000,
   horizon: 30,
@@ -842,7 +842,6 @@ function renderKPIs() {
   setText("#rail-buys-val", `${buys} / ${sells}`);
   setText("#rail-buys-sub", `${state.stocks.length} SKUs total`);
 
-   strip
   setText("#term-horizon", state.horizon + "D");
   setText("#term-paths", state.sims >= 1000 ? (state.sims / 1000) + "K" : String(state.sims));
   setText("#term-seed", String(state.seed));
